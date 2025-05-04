@@ -23,6 +23,7 @@ env:
 jobs:
   tests:
     name: testing
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash -l {0}  # Default to using bash on all and load (-l) .bashrc which miniconda uses
