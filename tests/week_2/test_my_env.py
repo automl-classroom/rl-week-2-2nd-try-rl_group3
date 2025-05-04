@@ -4,7 +4,10 @@ import unittest
 import gymnasium
 import numpy as np
 import pytest
-from rl_exercises.week_2.my_env import MyEnv  # adjust import path as needed
+from rl_exercises.week_2.my_env import (  # adjust import path as needed
+    MyEnv,
+    PartialObsWrapper,
+)
 
 
 class TestMyEnv(unittest.TestCase):
@@ -56,3 +59,33 @@ class TestMyEnv(unittest.TestCase):
         )
         # probabilities should be between 0 and 1
         assert np.all(T >= 0) and np.all(T <= 1)
+
+    def test_partial_obs_zero_noise(self):
+        """With noise=0, wrapper observations equal true state."""
+        base = MyEnv(seed=0)
+        wrapper = PartialObsWrapper(base, noise=0.0, seed=0)
+
+        obs, _ = wrapper.reset(seed=0)
+        assert obs == base.position
+
+        for action in [0, 1, 1, 0]:
+            noisy_obs, _, _, _, _ = wrapper.step(action)
+            assert noisy_obs == base.position, (
+                "With zero noise, wrapper obs must match true state"
+            )
+
+    def test_partial_obs_full_noise(self):
+        """With noise=1, wrapper observations never equal true state."""
+        base = MyEnv(seed=42)
+        wrapper = PartialObsWrapper(base, noise=1.0, seed=42)
+
+        obs, _ = wrapper.reset()
+        assert obs != base.position, (
+            "With full noise, reset obs must differ from true state"
+        )
+
+        for action in [0, 1, 1, 0]:
+            noisy_obs, _, _, _, _ = wrapper.step(action)
+            assert noisy_obs != base.position, (
+                "With full noise, step obs must differ from true state"
+            )
