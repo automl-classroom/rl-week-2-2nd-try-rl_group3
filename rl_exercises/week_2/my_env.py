@@ -243,4 +243,117 @@ class PartialObsWrapper(gym.Wrapper):
     metadata = {"render_modes": ["human"]}
 
     def __init__(self, env: gym.Env, noise: float = 0.1, seed: int | None = None):
-        pass
+        """
+        Initialize the partial observability wrapper.
+
+        Parameters
+        ----------
+        env : MarsRover
+            The environment to wrap.
+        noise : float, optional
+            Probability of observing an incorrect state, by default 0.1.
+        seed : int or None, optional
+            Random seed for reproducibility, by default None.
+        """
+        super().__init__(env)
+        assert 0.0 <= noise <= 1.0, "noise must be in [0,1]"
+        self.noise = noise
+        self.rng = np.random.default_rng(seed)
+
+        self.observation_space = env.observation_space
+        self.action_space = env.action_space
+
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        """
+        Reset the base environment and return a noisy observation.
+
+        Parameters
+        ----------
+        seed : int or None, optional
+            Seed for the reset, by default None.
+        options : dict or None, optional
+            Additional reset options, by default None.
+
+        Returns
+        -------
+        obs : int
+            The (possibly noisy) initial observation.
+        info : dict
+            Additional info returned by the environment.
+        """
+        true_obs, info = self.env.reset(seed=seed, options=options)
+        return self._noisy_obs(true_obs), info
+
+    def step(self, action: int) -> tuple[int, float, bool, bool, dict[str, Any]]:
+        """
+        Take a step in the environment and return a noisy observation.
+
+        Parameters
+        ----------
+        action : int
+            Action to take.
+
+        Returns
+        -------
+        obs : int
+            The (possibly noisy) resulting observation.
+        reward : float
+            The reward received.
+        terminated : bool
+            Whether the episode terminated.
+        truncated : bool
+            Whether the episode was truncated due to time limit.
+        info : dict
+            Additional information from the base environment.
+        """
+        true_obs, reward, terminated, truncated, info = self.env.step(action)
+        return self._noisy_obs(true_obs), reward, terminated, truncated, info
+
+    def _noisy_obs(self, true_obs: int) -> int:
+        """
+        Return a possibly noisy version of the true observation.
+
+        With probability `noise`, replaces the true observation with
+        a randomly selected incorrect state.
+
+        Parameters
+        ----------
+        true_obs : int
+            The true observation/state index.
+
+        Returns
+        -------
+        obs : int
+            A noisy (or true) observation.
+        """
+        if self.rng.random() < self.noise:  # random number is in [0, 1]
+            n = self.observation_space.n
+            others = [
+                s for s in range(n) if s != true_obs
+            ]  # generate array with all states except the true state; example for n = 4 and true_obs = 2: others = [0, 1, 3]
+            return int(
+                self.rng.choice(others)
+            )  # choose random state from not true states
+        else:
+            return int(true_obs)
+
+    def render(self, mode: str = "human"):
+        """
+        Render the current state of the environment.
+
+        Parameters
+        ----------
+        mode : str, optional
+            Render mode, by default "human".
+
+        Returns
+        -------
+        Any
+            Rendered output from the base environment.
+        """
+        return self.env.render(mode=mode)
