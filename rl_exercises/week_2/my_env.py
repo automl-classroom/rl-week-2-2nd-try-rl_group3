@@ -46,7 +46,7 @@ class MyEnv(gym.Env):
         transition_probabilities : np.ndarray, optional
             A (num_states, 2) array specifying the probability of actions being followed.
         rewards : list of float, optional
-            Rewards assigned to each position, by default [1, 1].
+            Rewards assigned to each position, by default [0, 1].
         horizon : int, optional
             Maximum number of steps per episode, by default 10.
         seed : int or None, optional
@@ -221,7 +221,7 @@ class MyEnv(gym.Env):
         mode : str
             Render mode (only "human" is supported).
         """
-        print(f"[MarsRover] pos={self.position}, steps={self.current_steps}")
+        print(f"[MyEnv] pos={self.position}, steps={self.current_steps}")
 
 
 class PartialObsWrapper(gym.Wrapper):
